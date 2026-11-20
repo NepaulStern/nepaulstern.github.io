@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://gmihalache.com/NepaulSternAttitudes/r.html">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Install and use the R package attitudedyn for The Nepaul-Stern Model of Attitude Stability and Constraint.">
+  <title>R · The Nepaul-Stern Model of Attitude Stability and Constraint</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html">The Nepaul-Stern Model of Attitude Stability and Constraint</a>
+      <nav class="nav" aria-label="Pages">
+      <a href="index.html">Home</a>
+      <a href="r.html" aria-current="page">R</a>
+      <a href="python.html">Python</a>
+      <a href="stata.html">Stata</a>
+      </nav>
+    </div>
+  </header>
+  <main id="content">
+    <div class="wrap">
+
+    <p class="kicker">R</p>
+    <h1>The Nepaul-Stern Model in R</h1>
+    <div class="prose">
+      
+    <p>The Nepaul-Stern Model of Attitude Stability and Constraint is for panel surveys that ask the same people the same attitude questions more than once. The answers are on Likert scales (strongly agree to strongly disagree, liberal–conservative, party identification). Several related attitudes are measured together. Waves may be unevenly spaced, and a person may miss a wave or leave an item blank. Covariates such as age or education can be included.</p>
+    <p>The questions are about stability (how firmly an attitude persists), constraint (how much one attitude moves with another), how much of the variation comes from lasting individual differences, short-run change, and measurement noise, how a shock to one attitude spreads across later waves, and how covariates relate to the attitudes. Nepaul and Stern (2026) discuss the General Social Survey results. This page is about estimating the model.</p>
+
+      <h2 id="install">Install</h2>
+      <p>You need R 4.0 or newer. On Windows and macOS, CRAN provides a ready-made install, so you do not need a compiler.</p>
+    </div>
+    <figure class="block">
+  <figcaption>R</figcaption>
+  <pre><code>install.packages(&quot;attitudedyn&quot;)
+library(attitudedyn)</code></pre>
+</figure>
+    <div class="prose">
+      <details class="aside">
+        <summary>Linux, and installing without a compiler</summary>
+        <p>On Linux, <code>install.packages("attitudedyn")</code> builds the package on your computer, which needs a C++17 compiler. If you would rather not compile, the <a href="https://packagemanager.posit.co/">Posit Public Package Manager</a> and <a href="https://eddelbuettel.github.io/r2u/">r2u</a> provide ready-made Linux installs. On the Posit site, choose your distribution and use the repository address it shows. r2u does the same for Ubuntu.</p>
+      </details>
+      <h2 id="your-data">A survey of your own</h2>
+      <p>Put the survey in a data frame with one row per person per wave. <code>id</code> identifies the person and <code>wave</code> identifies the interview. Code each Likert item as the integers 1, 2, 3, and so on, with no skipped code. Leave a skipped item as missing. If someone misses a wave between their first and last interview, keep a row for that wave so the attitude can be carried across it.</p>
+      <p>For a new sample, use 50 draws. The default is 10, which is what the General Social Survey replication uses. <code>n_threads</code> is how many processors to use. Changing it changes the waiting time. The estimates stay the same. <code>seed = 1</code> is the default, and it leaves R’s usual random numbers alone.</p>
+    </div>
+    <figure class="block">
+  <figcaption>R</figcaption>
+  <pre><code>library(attitudedyn)
+
+# One row per person per wave. Likert items are coded 1, 2, 3, ...
+# with no skipped code. Replace the column names with yours.
+panel &lt;- read.csv(&quot;panel.csv&quot;)
+
+fit &lt;- attitudedyn(
+  cbind(ideology, party) ~ age + college + female,
+  data = panel,
+  id = ~ id,
+  wave = ~ wave,
+  n_factors = 2,
+  draws = 50,
+  control = attitudedyn_control(n_threads = 4, seed = 1)
+)
+
+summary(fit)
+persistence_matrix(fit)
+impulse_response(fit, horizon = 8)
+variance_decomposition(fit)</code></pre>
+</figure>
+    <div class="prose">
+      <p>R adds an intercept for you. Write the formula that way when every row is a real interview. The General Social Survey example below already has an intercept column in the data, and that column is 0 on a wave that was only inserted to fill a gap, so its formula is written <code>0 + `(Intercept)`</code>.</p>
+      <h2 id="gss">The General Social Survey example</h2>
+      <p>The numbers below are the printed output from the General Social Survey application in Nepaul and Stern (2026): six Likert items, on the 2006–2020 panels. The items are ideological identification (7 categories), military spending (3), welfare spending (3), the number of immigrants (5), party identification (7), and environmental spending (3). The replication data are on the <a href="https://doi.org/10.7910/DVN/DUCHYS">Harvard Dataverse</a>. The survey file the example reads is <code>gss2.prn</code>. Read it into a data frame named <code>panel</code>, one row per person per wave, with the columns below. The Python package can build that data frame with <code>read_gss()</code>.</p>
+      <table class="plain">
+        <thead><tr><th>Column</th><th>What it is</th></tr></thead>
+        <tbody>
+          <tr><td><code>id</code>, <code>wave</code></td><td>Person and wave. Waves in this file are 1 through 8. No missing values.</td></tr>
+          <tr><td><code>weight</code></td><td>A survey weight, zero or positive, and the same on every row for that person.</td></tr>
+          <tr><td><code>(Intercept)</code>, <code>age</code>, <code>hs</code>, <code>college</code>, <code>adv</code>, <code>female</code>, <code>white</code>, <code>black</code>, <code>inc_mid</code>, <code>inc_high</code></td><td>Covariates. The intercept is 1 on a wave that was in the file and 0 on a gap row.</td></tr>
+          <tr><td><code>ideology</code>, <code>military</code>, <code>welfare</code>, <code>immigrants</code>, <code>party</code>, <code>environment</code></td><td>The Likert items, coded from 1.</td></tr>
+        </tbody>
+      </table>
+      <p>Of the 11,282 people in the file, 11,252 have a positive weight and enter the likelihood. Everyone uses the same wave dates, <code>c(2, 3, 4, 5, 6, 7, 8, 10)</code>: wave 1 is date 2, and wave 8 is date 10. The gaps are seven steps of 1 and then a step of 2 between the last two waves. Pass that shared grid for this application.</p>
+      <p><code>estimates</code> holds the 164 replication starting values, in the order <code>coef()</code> uses. <code>maxit = 0</code> evaluates that vector and returns. <code>draws = 10</code> and <code>seed = 1</code> are the replication defaults: ten simulated paths, each paired with its mirror image (antithetic draws). On 4 threads that evaluation takes a few seconds.</p>
+      <p>A full search from those starting values took 202.6 seconds on 4 threads. It stopped with convergence code 0 at log-likelihood -111545.0088160454. The tables on this page are the evaluation of the starting values. That log-likelihood is -111570.9702226093, which <code>summary()</code> prints as -111571.</p>
+    </div>
+    <figure class="block">
+  <figcaption>R</figcaption>
+  <pre><code>fit &lt;- attitudedyn(
+  cbind(ideology, military, welfare, immigrants, party, environment) ~
+    0 + `(Intercept)` + age + hs + college + adv + female + white + black +
+    inc_mid + inc_high,
+  data = panel,
+  id = ~ id,
+  wave = ~ wave,
+  time_grid = c(2, 3, 4, 5, 6, 7, 8, 10),
+  weights = weight,
+  n_factors = 2,
+  draws = 10,
+  start = unname(estimates),
+  control = attitudedyn_control(
+    maxit = 0,
+    n_threads = 4,
+    vcov = &quot;opg_centered&quot;,
+    seed = 1
+  )
+)</code></pre>
+</figure>
+    <div class="prose">
+      <p>Then read the fit. The small draw count in <code>predict()</code> is only the setting that produced the printed excerpt. In your own work, leave <code>n_draws</code> at its default, which is at least 20.</p>
+    </div>
+    <figure class="block">
+  <figcaption>R</figcaption>
+  <pre><code>summary(fit)
+glance(fit)
+tidy(fit)
+persistence_matrix(fit)
+irf &lt;- impulse_response(fit, horizon = 8)
+irf$spectral_radius
+variance_decomposition(fit)
+head(predict(fit, type = &quot;class&quot;, n_draws = 2, seed = 2))
+head(predict(fit, type = &quot;prob&quot;, n_draws = 2, seed = 2)$ideology)
+head(simulate(fit, nsim = 1, seed = 2))</code></pre>
+</figure>
+    <div class="prose">
+      <h2 id="summary">Summary</h2>
+      <p><code>summary(fit)</code> opens with the sample size and the log-likelihood, then prints every free coefficient. There are 164 of them. <code>glance(fit)</code> is one row of fit statistics. <code>tidy(fit)</code> is the coefficient table as a data frame. These are the opening lines, the one-row summary, and the first rows of <code>tidy(fit)</code> (the ideology wave effects).</p>
+    </div>
+    <figure class="block output">
+  <figcaption>What summary() prints first</figcaption>
+  <pre><code>Dynamic ordinal attitude model
+Log-likelihood: -111571
+People: 11252   Attitudes: 6   Waves: 8
+Draws: 10 (plus antithetic twins)
+Free coefficients: 164
+Converged.</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>glance(fit)</figcaption>
+  <pre><code>  logLik      AIC      BIC  nobs n_free draws converged
+1 -111571 223469.9 224671.8 11252    164    10      TRUE</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>The first rows of tidy(fit)</figcaption>
+  <pre><code>                    term estimate  std.error statistic       p.value
+1 wave_effect[ideology,1] 2.194142 0.05376410  40.81055  0.000000e+00
+2 wave_effect[ideology,2] 2.074462 0.05245524  39.54728  0.000000e+00
+3 wave_effect[ideology,3] 2.027419 0.05290115  38.32467  0.000000e+00
+4 wave_effect[ideology,4] 1.923106 0.05950472  32.31854 3.840033e-229
+5 wave_effect[ideology,5] 1.826457 0.06550899  27.88101 4.534093e-171
+6 wave_effect[ideology,6] 2.086153 0.05284053  39.48018  0.000000e+00
+7 wave_effect[ideology,7] 2.066090 0.05334925  38.72763  0.000000e+00
+8 wave_effect[ideology,8] 2.056632 0.05238561  39.25949  0.000000e+00</code></pre>
+</figure>
+    <div class="prose">
+      <h2 id="persistence">Persistence and impulse responses</h2>
+      <p><code>persistence_matrix()</code> is on a scale from −1 to 1. The row is the attitude that receives the past. The column is the attitude that is lagged. <code>summary()</code> prints that matrix rounded to three decimals. The function itself prints more digits.</p>
+      <p><code>impulse_response()</code> follows a one-unit shock. Horizon 0 is the shock itself. Later rows are the response after that many steps. For this fit the spectral radius is 0.636678. The figure is the same grid: rows respond, columns are the shock. Nepaul and Stern (2026) discuss what the paths mean.</p>
+    </div>
+    <figure class="block output">
+  <figcaption>The end of summary(fit)</figcaption>
+  <pre><code>Persistence on (-1, 1), receiving attitude by source attitude:
+            ideology military welfare immigrants  party environment
+ideology       0.242   -0.033  -0.033      0.043 -0.146      -0.101
+military      -0.015    0.503   0.003      0.017 -0.086       0.012
+welfare       -0.003    0.031   0.536      0.009  0.053      -0.157
+immigrants     0.010    0.009   0.050      0.434  0.057      -0.132
+party         -0.233   -0.079   0.028      0.039  0.467      -0.036
+environment   -0.120    0.007  -0.031     -0.116  0.000       0.281
+
+Covariance type: opg_centered</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>persistence_matrix(fit)</figcaption>
+  <pre><code>                ideology     military      welfare   immigrants         party
+ideology     0.241617418 -0.033489725 -0.032641594  0.042786144 -0.1464621228
+military    -0.014958273  0.503399564  0.002622063  0.016527763 -0.0859475246
+welfare     -0.002560862  0.031288136  0.536315888  0.009337382  0.0534814626
+immigrants   0.009940252  0.008915214  0.050386823  0.434174577  0.0573418470
+party       -0.233068940 -0.078857718  0.027697333  0.038619875  0.4673942578
+environment -0.120417498  0.006960558 -0.030590966 -0.116273026 -0.0002142674
+            environment
+ideology    -0.10082475
+military     0.01190907
+welfare     -0.15660637
+immigrants  -0.13201325
+party       -0.03608537
+environment  0.28139499</code></pre>
+</figure>
+    <figure class="figure-card">
+      <img src="figures/gss_impulse_response.png" alt="Impulse responses for the six General Social Survey attitudes. Rows respond to the shock named in the column. Horizon 0 is the impact.">
+      <figcaption>Rows receive the shock named in the column. Horizon 0 is the impact.</figcaption>
+    </figure>
+    <div class="prose">
+      <h2 id="variance">Variance decomposition</h2>
+      <p><code>variance_decomposition()</code> reports four pieces for each latent attitude. <code>covariate</code> is the variance of the wave effect plus the covariates. <code>wave_effect</code> is the wave effect on its own. <code>factor</code> is the sum of squared loadings, the part that stays with the person across waves. <code>shock</code> is the average short-run contribution built from the persistence coefficients. <code>total</code> adds the four.</p>
+    </div>
+    <figure class="block output">
+  <figcaption>variance_decomposition(fit)</figcaption>
+  <pre><code>     attitude  covariate wave_effect    factor    shock    total
+1    ideology 0.05539829 0.006743936 1.0157923 1.075184 2.153119
+2    military 0.08066210 0.012030993 0.2563862 1.230515 1.579594
+3     welfare 0.06768285 0.008042642 0.3143057 1.281257 1.671288
+4  immigrants 0.11566266 0.025941273 0.1506216 1.180127 1.472352
+5       party 0.15248945 0.008187262 1.6801225 1.241410 3.082209
+6 environment 0.08822739 0.044159354 0.5093202 1.087319 1.729025</code></pre>
+</figure>
+    <div class="prose">
+      <h2 id="predict">Predicted categories and a new panel</h2>
+      <p><code>predict(..., type = "class")</code> is the Likert category with the highest probability. <code>type = "prob"</code> is the probability of each category. The excerpt below is ideology. The row numbers skip, because they are positions in the person-by-wave array and waves outside a person’s window are still in that array.</p>
+      <p><code>simulate()</code> draws a new panel from the fitted coefficients, with 11,252 people and 8 waves (90,016 rows). The intercept column is ones. The other covariates are standard normal. The seed used for the printed rows is 2.</p>
+    </div>
+    <figure class="block output">
+  <figcaption>head(predict(fit, type = &quot;class&quot;, n_draws = 2, seed = 2))</figcaption>
+  <pre><code>    id wave ideology military welfare immigrants party environment
+1  1001    1        4        1       2          1     1           3
+2  1001    2        4        1       1          3     1           3
+3  1001    3        4        1       1          3     1           3
+9  1002    1        2        1       3          3     1           3
+10 1002    2        2        1       3          3     1           3
+11 1002    3        4        1       2          3     1           3
+17 1003    1        4        2       3          1     1           3
+18 1003    2        4        2       3          1     1           3</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>Ideology probabilities from predict(..., type = &quot;prob&quot;)</figcaption>
+  <pre><code>    id wave         p1        p2        p3        p4         p5         p6
+1  1001    1 0.02758044 0.1272366 0.1272589 0.3648183 0.15185606 0.17056472
+2  1001    2 0.03794270 0.1439802 0.1227266 0.2988741 0.13858043 0.20433331
+3  1001    3 0.03870095 0.1463892 0.1263869 0.3213133 0.14303027 0.18459334
+9  1002    1 0.16961015 0.3121439 0.1900333 0.2799786 0.03572320 0.01219481
+10 1002    2 0.20219138 0.3195043 0.1820723 0.2555146 0.03056457 0.00991825
+11 1002    3 0.13838390 0.2846763 0.1878729 0.3175696 0.05049026 0.02031592
+             p7
+1  0.0306849530
+2  0.0535626919
+3  0.0395860755
+9  0.0003160778
+10 0.0002345712
+11 0.0006911060</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>The first rows of simulate(fit, nsim = 1, seed = 2)</figcaption>
+  <pre><code> id wave time `(Intercept)`        age          hs    college         adv
+1  1    1    2             1 -0.9026492  0.50903832  0.2301757  1.20352629
+2  1    2    3             1  0.4938905  0.63569010  1.4042788  0.57787148
+3  1    3    4             1  1.1721555  0.04787437 -1.5068600  0.02361624
+4  1    4    5             1 -1.1126723 -0.07966583 -0.2856974 -1.33421211
+5  1    5    6             1  0.4599354  0.99818882 -1.0672768  1.54923301
+6  1    6    7             1 -0.4065013  0.70675225 -0.3270731 -0.84974658
+      female      white      black    inc_mid    inc_high ideology military
+1 -1.0757920  1.4073684  0.8245715  1.3188503  0.08765931        4        1
+2 -0.5703429 -0.6362407 -0.7278699  0.7104078 -0.42438204        4        1
+3 -1.0646881 -0.7731621  0.7288264  1.4819691 -1.14535413        4        1
+4 -0.5488183 -1.3743841 -0.8756520 -1.3382348  0.86257042        4        1
+5 -0.1009926 -1.1099300 -0.7438604 -0.9587655 -1.20854974        4        1
+6 -0.8482505  1.1923700 -1.1455800  0.8882187  1.06460981        5        2
+  welfare immigrants party environment
+1       3          1     3           3
+2       2          5     2           3
+3       3          2     1           2
+4       3          3     2           2
+5       3          5     1           2
+6       3          3     6           3</code></pre>
+</figure>
+    <div class="prose">
+      <details class="aside">
+        <summary>The corner of the stored covariance matrix</summary>
+        <p><code>summary()</code> uses the covariance stored with the fit. Here that is <code>opg_centered</code>. This is the corner of that matrix.</p>
+      </details>
+    </div>
+    <figure class="block output">
+  <figcaption>The corner of vcov(fit)</figcaption>
+  <pre><code>                        wave_effect[ideology,1] wave_effect[ideology,2]
+wave_effect[ideology,1]                0.002891                0.002241
+wave_effect[ideology,2]                0.002241                0.002752
+wave_effect[ideology,3]                0.002252                0.002404
+                        wave_effect[ideology,3]
+wave_effect[ideology,1]                0.002252
+wave_effect[ideology,2]                0.002404
+wave_effect[ideology,3]                0.002799</code></pre>
+</figure>
+    <div class="prose">
+      
+    <h2 id="how">How it works, briefly</h2>
+    <p>The arithmetic is done by a C++17 program that has no libraries of its own. The R package calls that program.</p>
+    <p>The likelihood is simulated, by the Geweke–Hajivassiliou–Keane (GHK) method. The slope of the likelihood is analytic, and the search uses BFGS.</p>
+    <p>The random draws use Philox. Each draw is tied to the seed, the person, and the draw number, so the same data and seed give the same answer with any number of threads, and on Windows, macOS, and Linux.</p>
+    <p>The loop over people can use several threads. Standard errors can be the outer product of the person-level scores (the default, <code>opg_centered</code>, or the uncentred <code>opg</code>), the curvature of the likelihood (<code>hessian</code>), or the sandwich combination of those two.</p>
+    <p>For the substantive reading of a set of estimates, including the General Social Survey application, see Nepaul and Stern (2026).</p>
+
+    </div>
+
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Nepaul, Alecia, and Steven Stern. 2026. “A Dynamic Discrete Choice Approach to Attitude Stability and Constraint.” <em>Political Analysis</em> 34: 490–509. <a href="https://doi.org/10.1017/pan.2026.10034">https://doi.org/10.1017/pan.2026.10034</a>.</p>
+      <p>Replication data: Nepaul, Alecia, and Steven Stern. 2026. “Replication Data for: A Dynamic Discrete Choice Approach to Attitude Stability and Constraint.” Harvard Dataverse. <a href="https://doi.org/10.7910/DVN/DUCHYS">https://doi.org/10.7910/DVN/DUCHYS</a>.</p>
+      <p>The software <code>attitudedyn</code> is released under the <a href="LICENSE">MIT License</a>. Copyright © 2026 Gabriel Mihalache.</p>
+    </div>
+  </footer>
+</body>
+</html>

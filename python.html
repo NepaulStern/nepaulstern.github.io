@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://gmihalache.com/NepaulSternAttitudes/python.html">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Install and use the Python package attitudedyn for The Nepaul-Stern Model of Attitude Stability and Constraint.">
+  <title>Python · The Nepaul-Stern Model of Attitude Stability and Constraint</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html">The Nepaul-Stern Model of Attitude Stability and Constraint</a>
+      <nav class="nav" aria-label="Pages">
+      <a href="index.html">Home</a>
+      <a href="r.html">R</a>
+      <a href="python.html" aria-current="page">Python</a>
+      <a href="stata.html">Stata</a>
+      </nav>
+    </div>
+  </header>
+  <main id="content">
+    <div class="wrap">
+
+    <p class="kicker">Python</p>
+    <h1>The Nepaul-Stern Model in Python</h1>
+    <div class="prose">
+      
+    <p>The Nepaul-Stern Model of Attitude Stability and Constraint is for panel surveys that ask the same people the same attitude questions more than once. The answers are on Likert scales (strongly agree to strongly disagree, liberal–conservative, party identification). Several related attitudes are measured together. Waves may be unevenly spaced, and a person may miss a wave or leave an item blank. Covariates such as age or education can be included.</p>
+    <p>The questions are about stability (how firmly an attitude persists), constraint (how much one attitude moves with another), how much of the variation comes from lasting individual differences, short-run change, and measurement noise, how a shock to one attitude spreads across later waves, and how covariates relate to the attitudes. Nepaul and Stern (2026) discuss the General Social Survey results. This page is about estimating the model.</p>
+
+      <h2 id="install">Install</h2>
+      <p>You need Python 3.10 or newer. Ready-made installs are provided for Python 3.10, 3.11, 3.12, and 3.13 on Linux (64-bit Intel and 64-bit ARM), macOS (Apple silicon and Intel), and 64-bit Windows. On those systems you do not need a compiler. The install also brings in NumPy, SciPy, and pandas.</p>
+    </div>
+    <figure class="block">
+  <figcaption>Shell</figcaption>
+  <pre><code>pip install attitudedyn</code></pre>
+</figure>
+    <div class="prose">
+      <details class="aside">
+        <summary>If you need to build from source</summary>
+        <p>On a computer without a ready-made install, the same command compiles the package. You need Python 3.10 or newer, a C++17 compiler, and CMake, which the installer uses to compile the program.</p>
+      </details>
+      <h2 id="your-data">A survey of your own</h2>
+      <p>Put the survey in a data frame with one row per person per wave. Name the person column and the wave column in <code>id_col</code> and <code>wave_col</code>. Code each Likert item as the integers 1, 2, 3, and so on, with no skipped code. Leave a skipped item as missing. If someone misses a wave between their first and last interview, keep a row for that wave so the attitude can be carried across it.</p>
+      <p>For a new sample, use 50 draws. The default is 10, which is what the General Social Survey replication uses. <code>threads</code> is how many processors to use. Changing it changes the waiting time. The estimates stay the same. <code>seed=1</code> is the default.</p>
+    </div>
+    <figure class="block">
+  <figcaption>Python</figcaption>
+  <pre><code>import pandas as pd
+import attitudedyn
+
+# One row per person per wave. Likert items are coded 1, 2, 3, ...
+# with no skipped code. Replace the column names with yours.
+panel = pd.read_csv(&quot;panel.csv&quot;)
+
+result = attitudedyn.fit(
+    panel,
+    formula=&quot;cbind(ideology, party) ~ age + college + female&quot;,
+    id_col=&quot;id&quot;,
+    wave_col=&quot;wave&quot;,
+    n_factors=2,
+    draws=50,
+    threads=4,
+    seed=1,
+)
+print(result.summary())
+print(result.persistence_matrix())
+print(result.variance_decomposition())</code></pre>
+</figure>
+    <div class="prose">
+      <p>The formula adds an intercept. That is what you want when every row is a real interview. The General Social Survey example already has an intercept column, so the call sets <code>add_intercept=False</code> and lists that column with the covariates.</p>
+      <h2 id="gss">The General Social Survey example</h2>
+      <p>The numbers below are the printed output from the General Social Survey application in Nepaul and Stern (2026). The replication data are on the <a href="https://doi.org/10.7910/DVN/DUCHYS">Harvard Dataverse</a>. <code>read_gss()</code> reads the survey file <code>gss2.prn</code>. <code>read_gss_estimates()</code> reads the 164 replication starting values. <code>OUTCOMES</code>, <code>COVARIATES</code>, and <code>TIME_GRID</code> are the column lists and the wave dates for this application. The wave dates are 2, 3, 4, 5, 6, 7, 8, and 10.</p>
+      <p>The prepared items are ideology (7 categories), military (3), welfare (3), immigrants (5), party (7), and environment (3). The file has 11,282 people. The loader returns 22,443 rows, and 11,252 people have a positive weight and enter the likelihood. These are the first rows of that data frame.</p>
+    </div>
+    <figure class="block">
+  <figcaption>Python</figcaption>
+  <pre><code>import attitudedyn
+from attitudedyn.gss import (
+    COVARIATES,
+    OUTCOMES,
+    TIME_GRID,
+    read_gss,
+    read_gss_estimates,
+)
+
+# gss2.prn is the survey file in the replication package.
+# The estimates file holds the 164 replication starting values.
+panel = read_gss(&quot;gss2.prn&quot;)
+estimates = read_gss_estimates(&quot;gss_log.txt&quot;)
+panel.head(8)</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>panel.head(8)</figcaption>
+  <pre><code>     id  wave  weight  (Intercept)   age   hs  college  adv  female  white  black  inc_mid  inc_high  ideology  military  welfare  immigrants  party  environment
+0  1001     1     1.0          1.0  23.0  0.0      1.0  0.0     1.0    0.0    1.0      0.0       1.0       6.0       NaN      NaN         NaN    1.0          NaN
+1  1001     2     1.0          1.0  25.0  0.0      1.0  0.0     1.0    0.0    0.0      0.0       1.0       1.0       NaN      NaN         NaN    1.0          NaN
+2  1001     3     1.0          1.0  27.0  0.0      1.0  0.0     1.0    0.0    1.0      0.0       1.0       1.0       NaN      NaN         NaN    1.0          NaN
+3  1002     1     1.0          1.0  32.0  0.0      0.0  1.0     1.0    0.0    0.0      0.0       0.0       3.0       1.0      2.0         NaN    2.0          3.0
+4  1002     2     1.0          1.0  34.0  0.0      0.0  1.0     1.0    0.0    0.0      0.0       1.0       4.0       2.0      2.0         3.0    1.0          3.0
+5  1002     3     1.0          1.0  36.0  0.0      0.0  1.0     1.0    1.0    0.0      0.0       1.0       2.0       2.0      2.0         3.0    1.0          2.0
+6  1003     1     1.0          1.0  81.0  0.0      0.0  0.0     1.0    0.0    1.0      0.0       0.0       4.0       NaN      NaN         NaN    2.0          NaN
+7  1003     2     1.0          1.0  83.0  0.0      0.0  0.0     1.0    0.0    1.0      1.0       0.0       2.0       NaN      NaN         NaN    1.0          NaN</code></pre>
+</figure>
+    <div class="prose">
+      <p><code>maxit=0</code> evaluates the replication starting values and returns. <code>draws=10</code> and <code>seed=1</code> are the defaults used for this replication: ten simulated paths, each paired with its mirror image (antithetic draws). On 4 threads that evaluation takes a few seconds.</p>
+      <p>A full search from those starting values took 276.3 seconds in Python on 4 threads. It stopped with convergence code 0 at log-likelihood -111545.0088160454. The tables on this page are the evaluation. <code>summary()</code> prints its log-likelihood as -111570.970223.</p>
+    </div>
+    <figure class="block">
+  <figcaption>Python</figcaption>
+  <pre><code>result = attitudedyn.fit(
+    panel,
+    outcomes=OUTCOMES,
+    covariates=COVARIATES,
+    id_col=&quot;id&quot;,
+    wave_col=&quot;wave&quot;,
+    time_grid=TIME_GRID,
+    weights=&quot;weight&quot;,
+    n_factors=2,
+    draws=10,
+    add_intercept=False,
+    start=estimates.to_numpy(),
+    threads=4,
+    maxit=0,
+    vcov=&quot;opg_centered&quot;,
+    seed=1,
+)
+print(result.summary())</code></pre>
+</figure>
+    <div class="prose">
+      <h2 id="summary">Summary</h2>
+      <p><code>print(result.summary())</code> opens with the sample size and the log-likelihood, then prints all 164 free coefficients. <code>to_dataframe()</code> is that table as a data frame. Below are the opening lines, the persistence matrix that the summary prints at the end (three decimals), and the first rows of <code>to_dataframe()</code>.</p>
+    </div>
+    <figure class="block output">
+  <figcaption>The top of summary()</figcaption>
+  <pre><code>Dynamic ordinal attitude model
+Log-likelihood: -111570.970223
+People: 11252   Attitudes: 6   Waves: 8
+Draws: 10 (plus antithetic twins)
+Free coefficients: 164
+Converged.</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>The end of summary()</figcaption>
+  <pre><code>Persistence on (-1, 1), receiving attitude by source attitude:
+             ideology  military  welfare  immigrants  party  environment
+ideology        0.242    -0.033   -0.033       0.043 -0.146       -0.101
+military       -0.015     0.503    0.003       0.017 -0.086        0.012
+welfare        -0.003     0.031    0.536       0.009  0.053       -0.157
+immigrants      0.010     0.009    0.050       0.434  0.057       -0.132
+party          -0.233    -0.079    0.028       0.039  0.467       -0.036
+environment    -0.120     0.007   -0.031      -0.116 -0.000        0.281
+
+Covariance type: opg_centered</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>The first rows of to_dataframe()</figcaption>
+  <pre><code>                         estimate  std_error  statistic         pvalue  conf_low  conf_high
+wave_effect[ideology,1]  2.194142   0.053764  40.810547   0.000000e+00  2.088767   2.299518
+wave_effect[ideology,2]  2.074462   0.052455  39.547281   0.000000e+00  1.971652   2.177272
+wave_effect[ideology,3]  2.027419   0.052901  38.324673   0.000000e+00  1.923735   2.131104
+wave_effect[ideology,4]  1.923106   0.059505  32.318543  3.840033e-229  1.806479   2.039733
+wave_effect[ideology,5]  1.826457   0.065509  27.881012  4.534093e-171  1.698062   1.954852
+wave_effect[ideology,6]  2.086153   0.052841  39.480177   0.000000e+00  1.982588   2.189719
+wave_effect[ideology,7]  2.066090   0.053349  38.727628   0.000000e+00  1.961527   2.170653
+wave_effect[ideology,8]  2.056632   0.052386  39.259489   0.000000e+00  1.953958   2.159306</code></pre>
+</figure>
+    <details class="aside">
+      <summary>The full summary() table</summary>
+      <p>Every free coefficient from this evaluation, as <code>summary()</code> prints it.</p>
+      <figure class="block output">
+  <figcaption>summary()</figcaption>
+  <pre><code>Dynamic ordinal attitude model
+Log-likelihood: -111570.970223
+People: 11252   Attitudes: 6   Waves: 8
+Draws: 10 (plus antithetic twins)
+Free coefficients: 164
+Converged.
+
+Coefficients (unconstrained scale):
+                                         estimate    std_error  statistic        pvalue     conf_low    conf_high
+wave_effect[ideology,1]                   2.19414    0.0537641    40.8105             0      2.08877      2.29952
+wave_effect[ideology,2]                   2.07446    0.0524552    39.5473             0      1.97165      2.17727
+wave_effect[ideology,3]                   2.02742    0.0529011    38.3247             0      1.92373       2.1311
+wave_effect[ideology,4]                   1.92311    0.0595047    32.3185  3.84003e-229      1.80648      2.03973
+wave_effect[ideology,5]                   1.82646     0.065509     27.881  4.53409e-171      1.69806      1.95485
+wave_effect[ideology,6]                   2.08615    0.0528405    39.4802             0      1.98259      2.18972
+wave_effect[ideology,7]                   2.06609    0.0533493    38.7276             0      1.96153      2.17065
+wave_effect[ideology,8]                   2.05663    0.0523856    39.2595             0      1.95396      2.15931
+wave_effect[military,1]                 -0.288975    0.0689926   -4.18849   2.80814e-05    -0.424198    -0.153752
+wave_effect[military,2]                 -0.433582    0.0676748   -6.40685   1.48553e-10    -0.566223    -0.300942
+wave_effect[military,3]                 -0.231915    0.0670159    -3.4606   0.000538964    -0.363264    -0.100567
+wave_effect[military,4]                 -0.348256     0.077269   -4.50707   6.57298e-06    -0.499701    -0.196812
+wave_effect[military,5]                 -0.169827    0.0834813   -2.03431     0.0419201    -0.333447  -0.00620669
+wave_effect[military,6]                 0.0910581      0.06645    1.37033      0.170585   -0.0391815     0.221298
+wave_effect[military,7]                -0.0163355     0.069297  -0.235732      0.813641    -0.152155     0.119484
+wave_effect[military,8]                 -0.206867    0.0712802   -2.90216    0.00370594    -0.346574   -0.0671602
+wave_effect[welfare,1]                   0.763097    0.0728907    10.4691   1.19821e-25     0.620234     0.905961
+wave_effect[welfare,2]                   0.741931     0.070024    10.5954   3.13039e-26     0.604687     0.879176
+wave_effect[welfare,3]                   0.619622     0.071069     8.7186   2.81667e-18     0.480329     0.758914
+wave_effect[welfare,4]                   0.500512    0.0817232    6.12448   9.09812e-10     0.340338     0.660687
+wave_effect[welfare,5]                   0.560939    0.0921999    6.08394   1.17264e-09      0.38023     0.741647
+wave_effect[welfare,6]                   0.603802    0.0703441    8.58355   9.19875e-18      0.46593     0.741674
+wave_effect[welfare,7]                   0.741719    0.0727465    10.1959   2.06714e-24     0.599139       0.8843
+wave_effect[welfare,8]                   0.693559    0.0751544    9.22845   2.74567e-20     0.546259     0.840859
+wave_effect[immigrants,2]                 1.29178    0.0563771    22.9133  3.42726e-116      1.18129      1.40228
+wave_effect[immigrants,3]                 1.14817    0.0494667    23.2109  3.53751e-119      1.05121      1.24512
+wave_effect[immigrants,4]                 1.03105    0.0545704    18.8939   1.28048e-79     0.924092        1.138
+wave_effect[immigrants,5]                 1.11239    0.0629917    17.6592   8.63937e-70     0.988924      1.23585
+wave_effect[immigrants,6]                   1.499    0.0530972    28.2312  2.42463e-175      1.39493      1.60306
+wave_effect[immigrants,7]                 1.67488    0.0545736    30.6902  7.68247e-207      1.56791      1.78184
+wave_effect[immigrants,8]                 1.19314    0.0594779    20.0603   1.64091e-89      1.07657      1.30972
+wave_effect[party,1]                      1.78479    0.0635696    28.0762  1.91384e-173       1.6602      1.90939
+wave_effect[party,2]                      1.49033    0.0614461    24.2542  5.97135e-130      1.36989      1.61076
+wave_effect[party,3]                       1.4837    0.0628667    23.6007  3.78959e-123      1.36048      1.60692
+wave_effect[party,4]                      1.38228    0.0703357    19.6526   5.48859e-86      1.24443      1.52014
+wave_effect[party,5]                      1.35877    0.0769386    17.6604   8.45703e-70      1.20797      1.50957
+wave_effect[party,6]                       1.6026    0.0633102    25.3134  2.27296e-141      1.47851      1.72668
+wave_effect[party,7]                      1.66478    0.0641175    25.9645   1.2458e-148      1.53911      1.79045
+wave_effect[party,8]                      1.57891    0.0627785    25.1505  1.39428e-139      1.45587      1.70196
+wave_effect[environment,1]                2.09567    0.0835807    25.0736  9.65568e-139      1.93185      2.25948
+wave_effect[environment,2]                 1.9747    0.0789305    25.0182  3.87521e-138         1.82       2.1294
+wave_effect[environment,3]                1.67623     0.079143    21.1798   1.46783e-99      1.52111      1.83135
+wave_effect[environment,4]                1.76403    0.0892055    19.7749   4.89688e-87      1.58919      1.93887
+wave_effect[environment,5]                1.89178     0.100979    18.7343   2.59984e-78      1.69386       2.0897
+wave_effect[environment,6]                1.89137    0.0800032    23.6412  1.45383e-123      1.73457      2.04818
+wave_effect[environment,7]                2.08761     0.082542    25.2915   3.9601e-141      1.92583      2.24939
+wave_effect[environment,8]                2.27865    0.0880092     25.891  8.40691e-148      2.10615      2.45114
+beta[ideology,age]                     0.00890575   0.00053418    16.6718   2.10108e-62   0.00785878   0.00995272
+beta[ideology,hs]                       0.0389436    0.0279587    1.39289      0.163652   -0.0158545    0.0937416
+beta[ideology,college]                  -0.131787    0.0330858   -3.98318   6.79999e-05    -0.196634   -0.0669396
+beta[ideology,adv]                      -0.436425    0.0371282   -11.7545   6.69299e-32    -0.509195    -0.363655
+beta[ideology,female]                   -0.112073    0.0177608   -6.31016   2.78749e-10    -0.146884   -0.0772628
+beta[ideology,white]                    0.0347212    0.0322873    1.07539      0.282202   -0.0285606    0.0980031
+beta[ideology,black]                    -0.150774    0.0385956   -3.90651   9.36399e-05     -0.22642    -0.075128
+beta[ideology,inc_mid]                  0.0487865    0.0281083    1.73566     0.0826233   -0.0063047     0.103878
+beta[ideology,inc_high]                 0.0718818    0.0198514    3.62099   0.000293478    0.0329737      0.11079
+beta[military,age]                      0.0101607  0.000676522     15.019   5.51556e-51    0.0088347    0.0114866
+beta[military,hs]                       0.0289969    0.0380864   0.761346       0.44645    -0.045651     0.103645
+beta[military,college]                  -0.302258    0.0446899   -6.76345   1.34745e-11    -0.389848    -0.214667
+beta[military,adv]                      -0.489257    0.0503311   -9.72077   2.45921e-22    -0.587905     -0.39061
+beta[military,female]                    0.143222    0.0228363    6.27169    3.5716e-10    0.0984639     0.187981
+beta[military,white]                     0.239719    0.0410202    5.84394   5.09799e-09     0.159321     0.320117
+beta[military,black]                    0.0954955    0.0488587    1.95452     0.0506393 -0.000265789     0.191257
+beta[military,inc_mid]                 -0.0569046    0.0409789   -1.38863      0.164945    -0.137222    0.0234126
+beta[military,inc_high]                 0.0578839    0.0274156    2.11135     0.0347425   0.00415024     0.111617
+beta[welfare,age]                     -0.00115952  0.000706948   -1.64018      0.100968  -0.00254511  0.000226073
+beta[welfare,hs]                        -0.134834    0.0395273   -3.41115   0.000646885    -0.212306   -0.0573616
+beta[welfare,college]                 -0.00233773    0.0471708 -0.0495588      0.960474   -0.0947908    0.0901153
+beta[welfare,adv]                        0.139973    0.0531799    2.63206    0.00848693    0.0357419     0.244203
+beta[welfare,female]                    0.0380378    0.0240004    1.58488      0.112994  -0.00900221    0.0850777
+beta[welfare,white]                     -0.143483    0.0443823   -3.23287    0.00122551     -0.23047   -0.0564948
+beta[welfare,black]                      0.260471      0.05229    4.98128   6.31655e-07     0.157985     0.362958
+beta[welfare,inc_mid]                  -0.0171697    0.0425877  -0.403162      0.686829     -0.10064    0.0663006
+beta[welfare,inc_high]                  -0.304853    0.0286805   -10.6293   2.17803e-26    -0.361066    -0.248641
+beta[immigrants,age]                  -0.00587847  0.000545535   -10.7756    4.4884e-27   -0.0069477  -0.00480924
+beta[immigrants,hs]                    -0.0309034    0.0283839   -1.08876      0.276258   -0.0865347     0.024728
+beta[immigrants,college]                 0.313761    0.0344473    9.10841   8.35949e-20     0.246245     0.381276
+beta[immigrants,adv]                     0.458367    0.0399446    11.4751   1.76041e-30     0.380077     0.536657
+beta[immigrants,female]                 0.0185234    0.0185384   0.999194      0.317701   -0.0178111    0.0548579
+beta[immigrants,white]                  -0.386179    0.0359207   -10.7509   5.86954e-27    -0.456583    -0.315776
+beta[immigrants,black]                   -0.10634    0.0415327    -2.5604     0.0104551    -0.187743   -0.0249378
+beta[immigrants,inc_mid]               -0.0431484    0.0347252   -1.24257      0.214027    -0.111209    0.0249118
+beta[immigrants,inc_high]              0.00414564    0.0227025   0.182607      0.855106   -0.0403504    0.0486417
+beta[party,age]                        0.00172248    0.0006138    2.80626    0.00501197  0.000519459   0.00292551
+beta[party,hs]                          0.0938045     0.032687    2.86978    0.00410758    0.0297392      0.15787
+beta[party,college]                     0.0330299    0.0383447   0.861393      0.389022   -0.0421244     0.108184
+beta[party,adv]                         -0.325031    0.0423939   -7.66691   1.76183e-14    -0.408121     -0.24194
+beta[party,female]                       -0.20524    0.0205524   -9.98615   1.75264e-23    -0.245522    -0.164958
+beta[party,white]                        0.321413    0.0382564    8.40155    4.4064e-17     0.246432     0.396394
+beta[party,black]                        -0.80776    0.0471898   -17.1173   1.10326e-65     -0.90025     -0.71527
+beta[party,inc_mid]                    -0.0809915    0.0319099   -2.53813     0.0111446    -0.143534   -0.0184493
+beta[party,inc_high]                    0.0276228    0.0222733    1.24018      0.214909    -0.016032    0.0712777
+beta[environment,age]                  -0.0119296  0.000817478   -14.5932   3.10173e-48   -0.0135319   -0.0103274
+beta[environment,hs]                     0.121307    0.0438863    2.76412    0.00570766    0.0352914     0.207322
+beta[environment,college]                0.261763    0.0528494      4.953   7.30774e-07      0.15818     0.365346
+beta[environment,adv]                    0.374627    0.0597782    6.26694   3.68215e-10     0.257463      0.49179
+beta[environment,female]                 0.169284    0.0264715    6.39493   1.60617e-10       0.1174     0.221167
+beta[environment,white]                  0.135097     0.049169     2.7476    0.00600336    0.0387272     0.231466
+beta[environment,black]                  0.188547    0.0600911    3.13769    0.00170286    0.0707708     0.306324
+beta[environment,inc_mid]               0.0368881    0.0481087   0.766767       0.44322   -0.0574031     0.131179
+beta[environment,inc_high]              0.0612614    0.0330392     1.8542     0.0637101  -0.00349425     0.126017
+persistence[ideology,ideology]           0.492982    0.0199398    24.7235  5.97649e-135     0.453901     0.532064
+persistence[ideology,military]         -0.0670045    0.0319538   -2.09692     0.0360007    -0.129633  -0.00437624
+persistence[ideology,welfare]          -0.0653064    0.0313714   -2.08172      0.037368    -0.126793  -0.00381967
+persistence[ideology,immigrants]        0.0856246     0.028425     3.0123    0.00259278    0.0299126     0.141337
+persistence[ideology,party]             -0.295046    0.0186786   -15.7959   3.31829e-56    -0.331656    -0.258437
+persistence[ideology,environment]       -0.202337     0.024313   -8.32218   8.63591e-17     -0.24999    -0.154684
+persistence[military,ideology]         -0.0299188    0.0302248  -0.989875      0.322235   -0.0891583    0.0293208
+persistence[military,military]             1.1077    0.0453443    24.4286    8.493e-132      1.01883      1.19657
+persistence[military,welfare]          0.00524414    0.0376714   0.139208      0.889286   -0.0685904    0.0790787
+persistence[military,immigrants]        0.0330585    0.0418609   0.789724      0.429689   -0.0489872     0.115104
+persistence[military,party]              -0.17232    0.0299407   -5.75539    8.6444e-09    -0.231003    -0.113638
+persistence[military,environment]       0.0238193    0.0312941   0.761143      0.446572    -0.037516    0.0851545
+persistence[welfare,ideology]         -0.00512173    0.0306405  -0.167156      0.867247   -0.0651759    0.0549325
+persistence[welfare,military]           0.0625967    0.0403353    1.55191      0.120684    -0.016459     0.141652
+persistence[welfare,welfare]              1.19794     0.051411    23.3012  4.30765e-120      1.09718       1.2987
+persistence[welfare,immigrants]         0.0186753    0.0451096   0.413999      0.678875   -0.0697378     0.107088
+persistence[welfare,party]               0.107065    0.0300477    3.56317   0.000366403    0.0481727     0.165957
+persistence[welfare,environment]        -0.315812    0.0337594   -9.35477   8.37845e-21    -0.381979    -0.249644
+persistence[immigrants,ideology]        0.0198812    0.0243968   0.814907      0.415125   -0.0279358    0.0676981
+persistence[immigrants,military]        0.0178309    0.0391905    0.45498      0.649124   -0.0589811    0.0946429
+persistence[immigrants,welfare]          0.100859    0.0370961    2.71886    0.00655079     0.028152     0.173566
+persistence[immigrants,immigrants]       0.930059    0.0319868    29.0763  7.15001e-186     0.867366     0.992752
+persistence[immigrants,party]             0.11481    0.0229413     5.0045   5.60078e-07    0.0698455     0.159774
+persistence[immigrants,environment]     -0.265577    0.0290634   -9.13783   6.37155e-20     -0.32254    -0.208613
+persistence[party,ideology]             -0.474864    0.0227951   -20.8319   2.22541e-96    -0.519542    -0.430187
+persistence[party,military]             -0.158044    0.0388624   -4.06675   4.76741e-05    -0.234213   -0.0818747
+persistence[party,welfare]              0.0554088    0.0371306    1.49227      0.135629   -0.0173658     0.128183
+persistence[party,immigrants]           0.0772782    0.0325446    2.37453     0.0175711     0.013492     0.141064
+persistence[party,party]                  1.01346    0.0295038    34.3503  1.39552e-258     0.955636      1.07129
+persistence[party,environment]         -0.0722021    0.0272564   -2.64899    0.00807316    -0.125624   -0.0187805
+persistence[environment,ideology]       -0.242009    0.0327189   -7.39662    1.3969e-13    -0.306137    -0.177881
+persistence[environment,military]       0.0139213    0.0425888   0.326878       0.74376   -0.0695511    0.0973938
+persistence[environment,welfare]        -0.061201    0.0437958   -1.39742      0.162288    -0.147039    0.0246372
+persistence[environment,immigrants]     -0.233603    0.0457812   -5.10259   3.35044e-07    -0.323332    -0.143873
+persistence[environment,party]       -0.000428535    0.0302619 -0.0141609      0.988702   -0.0597407    0.0588837
+persistence[environment,environment]     0.578393    0.0419667    13.7822   3.26183e-43      0.49614     0.660646
+loading[ideology,f1]                     0.729507    0.0144984    50.3163             0     0.701091     0.757924
+loading[military,f1]                     0.395218    0.0178927    22.0882  4.10513e-108     0.360149     0.430287
+loading[welfare,f1]                      -0.54423    0.0221741   -24.5435  5.07156e-133     -0.58769    -0.500769
+loading[immigrants,f1]                  -0.351662    0.0172755   -20.3561   4.10339e-92    -0.385521    -0.317802
+loading[party,f1]                        0.898242    0.0162758    55.1887             0     0.866342     0.930142
+loading[environment,f1]                 -0.713667    0.0257463   -27.7192  4.09726e-169    -0.764129    -0.663205
+loading[ideology,f2]                     0.695422    0.0142327     48.861             0     0.667526     0.723317
+loading[military,f2]                     0.316526    0.0180866    17.5006   1.41673e-68     0.281077     0.351975
+loading[welfare,f2]                      -0.13461    0.0185757   -7.24655   4.27537e-13    -0.171017    -0.098202
+loading[immigrants,f2]                  -0.164181    0.0155555   -10.5546    4.8395e-26     -0.19467    -0.133693
+loading[party,f2]                        0.934497    0.0180439    51.7903             0     0.899132     0.969862
+threshold[ideology,3]                   0.0719237    0.0151398    4.75063   2.02783e-06    0.0422502     0.101597
+threshold[ideology,4]                   -0.536762    0.0175651   -30.5584  4.37463e-205    -0.571189    -0.502335
+threshold[ideology,5]                    0.338155   0.00942645     35.873  8.05515e-282      0.31968     0.356631
+threshold[ideology,6]                   -0.451296    0.0162089   -27.8425  1.32816e-170    -0.483065    -0.419527
+threshold[ideology,7]                    0.225707    0.0135017    16.7168   9.88257e-63     0.199244     0.252169
+threshold[military,3]                    0.185715    0.0132427    14.0239   1.11321e-44      0.15976      0.21167
+threshold[welfare,3]                     0.180818    0.0137308    13.1688   1.32733e-39     0.153906      0.20773
+threshold[immigrants,3]                 -0.267703     0.015724   -17.0252   5.34302e-65    -0.298522    -0.236885
+threshold[immigrants,4]                  0.267313    0.0116404    22.9642  1.06236e-116     0.244498     0.290128
+threshold[immigrants,5]                  -0.32179    0.0239329   -13.4455   3.27257e-41    -0.368697    -0.274882
+threshold[party,3]                     -0.0760676    0.0140251   -5.42367   5.83878e-08    -0.103556   -0.0485789
+threshold[party,4]                      -0.490135    0.0163357    -30.004  8.70806e-198    -0.522152    -0.458117
+threshold[party,5]                     -0.0502956    0.0131204    -3.8334   0.000126382    -0.076011   -0.0245802
+threshold[party,6]                      -0.604002    0.0187373   -32.2352  5.66359e-228    -0.640726    -0.567277
+threshold[party,7]                     -0.0217444    0.0154967   -1.40317      0.160568   -0.0521174   0.00862854
+threshold[environment,3]                  0.32113    0.0165431    19.4117   6.14138e-84     0.288706     0.353554
+
+Signif. codes use the normal distribution. The 10% cutoff is 1.645.
+
+Persistence on (-1, 1), receiving attitude by source attitude:
+             ideology  military  welfare  immigrants  party  environment
+ideology        0.242    -0.033   -0.033       0.043 -0.146       -0.101
+military       -0.015     0.503    0.003       0.017 -0.086        0.012
+welfare        -0.003     0.031    0.536       0.009  0.053       -0.157
+immigrants      0.010     0.009    0.050       0.434  0.057       -0.132
+party          -0.233    -0.079    0.028       0.039  0.467       -0.036
+environment    -0.120     0.007   -0.031      -0.116 -0.000        0.281
+
+Covariance type: opg_centered</code></pre>
+</figure>
+    </details>
+    <div class="prose">
+      <h2 id="persistence">Persistence and impulse responses</h2>
+      <p><code>persistence_matrix()</code> is on a scale from −1 to 1. The row receives the lag. The column is the attitude that is lagged. <code>impulse_response(horizon=8)</code> follows a one-unit shock. Horizon 0 is the identity. For this fit the spectral radius is 0.6366776792122704. The rows below are the ideology responses at horizons 0 and 1. The figure is the full grid. Nepaul and Stern (2026) discuss what the paths mean.</p>
+    </div>
+    <figure class="block">
+  <figcaption>Python</figcaption>
+  <pre><code>result.persistence_matrix()
+irf = result.impulse_response(horizon=8)
+irf.spectral_radius
+irf.to_dataframe().query(&quot;horizon &lt;= 1 and to == &#x27;ideology&#x27;&quot;)
+result.variance_decomposition()
+result.predict(type=&quot;class&quot;, n_draws=2, seed=2).head(8)
+result.predict(type=&quot;prob&quot;, n_draws=2, seed=2).query(&quot;attitude == &#x27;ideology&#x27;&quot;).head(6)
+result.simulate(nsim=1, seed=2).head(4)</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>persistence_matrix()</figcaption>
+  <pre><code>             ideology  military   welfare  immigrants     party  environment
+ideology     0.241617 -0.033490 -0.032642    0.042786 -0.146462    -0.100825
+military    -0.014958  0.503400  0.002622    0.016528 -0.085948     0.011909
+welfare     -0.002561  0.031288  0.536316    0.009337  0.053481    -0.156606
+immigrants   0.009940  0.008915  0.050387    0.434175  0.057342    -0.132013
+party       -0.233069 -0.078858  0.027697    0.038620  0.467394    -0.036085
+environment -0.120417  0.006961 -0.030591   -0.116273 -0.000214     0.281395</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>Ideology responses at horizons 0 and 1</figcaption>
+  <pre><code> horizon       to        from  response
+       0 ideology    ideology  1.000000
+       0 ideology    military  0.000000
+       0 ideology     welfare  0.000000
+       0 ideology  immigrants  0.000000
+       0 ideology       party  0.000000
+       0 ideology environment  0.000000
+       1 ideology    ideology  0.241617
+       1 ideology    military -0.033490
+       1 ideology     welfare -0.032642
+       1 ideology  immigrants  0.042786
+       1 ideology       party -0.146462
+       1 ideology environment -0.100825</code></pre>
+</figure>
+    <figure class="figure-card">
+      <img src="figures/gss_impulse_response.png" alt="Impulse responses for the six General Social Survey attitudes. Rows respond to the shock named under the column. Horizon 0 is the impact.">
+      <figcaption>Rows receive the shock named under the column. Horizon 0 is the impact.</figcaption>
+    </figure>
+    <div class="prose">
+      <h2 id="variance">Variance decomposition</h2>
+      <p><code>variance_decomposition()</code> reports four pieces for each latent attitude. <code>covariate</code> is the variance of the wave effect plus the covariates. <code>wave_effect</code> is the wave effect on its own. <code>factor</code> is the sum of squared loadings, the part that stays with the person across waves. <code>shock</code> is the average short-run contribution built from the persistence coefficients. <code>total</code> adds the four.</p>
+    </div>
+    <figure class="block output">
+  <figcaption>variance_decomposition()</figcaption>
+  <pre><code>   attitude  covariate  wave_effect   factor    shock    total
+   ideology   0.055398     0.006744 1.015792 1.075184 2.153119
+   military   0.080662     0.012031 0.256386 1.230515 1.579594
+    welfare   0.067683     0.008043 0.314306 1.281257 1.671288
+ immigrants   0.115663     0.025941 0.150622 1.180127 1.472352
+      party   0.152489     0.008187 1.680123 1.241410 3.082209
+environment   0.088227     0.044159 0.509320 1.087319 1.729025</code></pre>
+</figure>
+    <div class="prose">
+      <h2 id="predict">Predicted categories and a new panel</h2>
+      <p><code>predict(type="class")</code> is the Likert category with the highest probability. <code>type="prob"</code> is one row per person, wave, attitude, and category. The probability excerpt is ideology. The small draw count is the setting that produced this excerpt. The default uses at least 20 draws.</p>
+      <p><code>simulate()</code> draws a new panel from the fitted coefficients, with 11,252 people and 8 waves (90,016 rows). Covariates other than the intercept are standard normal. The intercept column is left off, so the frame can be passed back to <code>fit</code> with <code>add_intercept=True</code>. The printed rows use seed 2.</p>
+    </div>
+    <figure class="block output">
+  <figcaption>predict(type=&quot;class&quot;, n_draws=2, seed=2).head(8)</figcaption>
+  <pre><code>  id  wave  ideology  military  welfare  immigrants  party  environment
+1001     1         4         1        2           1      1            3
+1001     2         4         1        1           3      1            3
+1001     3         4         1        1           3      1            3
+1002     1         2         1        3           3      1            3
+1002     2         2         1        3           3      1            3
+1002     3         4         1        2           3      1            3
+1003     1         4         2        3           1      1            3
+1003     2         4         2        3           1      1            3</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>Ideology probabilities</figcaption>
+  <pre><code>  id  wave attitude  category  probability
+1001     1 ideology         1     0.027580
+1001     1 ideology         2     0.127237
+1001     1 ideology         3     0.127259
+1001     1 ideology         4     0.364818
+1001     1 ideology         5     0.151856
+1001     1 ideology         6     0.170565</code></pre>
+</figure>
+    <figure class="block output">
+  <figcaption>simulate(nsim=1, seed=2).head(4)</figcaption>
+  <pre><code> id  wave  time       age        hs   college       adv    female     white     black   inc_mid  inc_high  ideology  military  welfare  immigrants  party  environment
+  1     1   2.0 -0.902649  0.509038  0.230176  1.203526 -1.075792  1.407368  0.824571  1.318850  0.087659         4         1        3           1      3            3
+  1     2   3.0  0.493890  0.635690  1.404279  0.577871 -0.570343 -0.636241 -0.727870  0.710408 -0.424382         4         1        2           5      2            3
+  1     3   4.0  1.172156  0.047874 -1.506860  0.023616 -1.064688 -0.773162  0.728826  1.481969 -1.145354         4         1        3           2      1            2
+  1     4   5.0 -1.112672 -0.079666 -0.285697 -1.334212 -0.548818 -1.374384 -0.875652 -1.338235  0.862570         4         1        3           3      2            2</code></pre>
+</figure>
+    <div class="prose">
+      <details class="aside">
+        <summary>The corner of the stored covariance matrix</summary>
+        <p><code>summary()</code> uses the covariance stored with the fit. Here that is <code>opg_centered</code>. This is the corner of that matrix.</p>
+      </details>
+    </div>
+    <figure class="block output">
+  <figcaption>The corner of vcov()</figcaption>
+  <pre><code>                         wave_effect[ideology,1]  wave_effect[ideology,2]  wave_effect[ideology,3]
+wave_effect[ideology,1]                 0.002891                 0.002241                 0.002252
+wave_effect[ideology,2]                 0.002241                 0.002752                 0.002404
+wave_effect[ideology,3]                 0.002252                 0.002404                 0.002799</code></pre>
+</figure>
+    <div class="prose">
+      
+    <h2 id="how">How it works, briefly</h2>
+    <p>The arithmetic is done by a C++17 program that has no libraries of its own. The Python package calls that same program, so a fit lines up with the R package.</p>
+    <p>The likelihood is simulated, by the Geweke–Hajivassiliou–Keane (GHK) method. The slope of the likelihood is analytic, and the default search uses BFGS, the same steps the R package takes. L-BFGS-B and Nelder-Mead are also available.</p>
+    <p>The random draws use Philox. Each draw is tied to the seed, the person, and the draw number, so the same data and seed give the same answer with any number of threads, and on Windows, macOS, and Linux. The seed does not change NumPy’s random numbers.</p>
+    <p>The loop over people can use several threads. Standard errors can be the outer product of the person-level scores (the default, <code>opg_centered</code>, or the uncentred <code>opg</code>), the curvature of the likelihood (<code>hessian</code>), or the sandwich combination of those two.</p>
+    <p>For the substantive reading of a set of estimates, including the General Social Survey application, see Nepaul and Stern (2026).</p>
+
+    </div>
+
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Nepaul, Alecia, and Steven Stern. 2026. “A Dynamic Discrete Choice Approach to Attitude Stability and Constraint.” <em>Political Analysis</em> 34: 490–509. <a href="https://doi.org/10.1017/pan.2026.10034">https://doi.org/10.1017/pan.2026.10034</a>.</p>
+      <p>Replication data: Nepaul, Alecia, and Steven Stern. 2026. “Replication Data for: A Dynamic Discrete Choice Approach to Attitude Stability and Constraint.” Harvard Dataverse. <a href="https://doi.org/10.7910/DVN/DUCHYS">https://doi.org/10.7910/DVN/DUCHYS</a>.</p>
+      <p>The software <code>attitudedyn</code> is released under the <a href="LICENSE">MIT License</a>. Copyright © 2026 Gabriel Mihalache.</p>
+    </div>
+  </footer>
+</body>
+</html>

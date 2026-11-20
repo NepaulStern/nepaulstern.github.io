@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="canonical" href="https://gmihalache.com/NepaulSternAttitudes/">
+  <meta name="color-scheme" content="light dark">
+  <meta name="description" content="Software for The Nepaul-Stern Model of Attitude Stability and Constraint, for Likert attitude panels in R, Python, and Stata.">
+  <title>The Nepaul-Stern Model of Attitude Stability and Constraint</title>
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="index.html">The Nepaul-Stern Model of Attitude Stability and Constraint</a>
+      <nav class="nav" aria-label="Pages">
+      <a href="index.html" aria-current="page">Home</a>
+      <a href="r.html">R</a>
+      <a href="python.html">Python</a>
+      <a href="stata.html">Stata</a>
+      </nav>
+    </div>
+  </header>
+  <main id="content">
+    <div class="wrap">
+
+    <p class="kicker">Software</p>
+    <h1>The Nepaul-Stern Model of Attitude Stability and Constraint</h1>
+    <section class="prose" aria-labelledby="when">
+      <h2 id="when">When to use this model</h2>
+      <p>The Nepaul-Stern Model of Attitude Stability and Constraint is for panel surveys in which the same people answer the same attitude questions more than once. That includes the General Social Survey (GSS) panels, the American National Election Studies (ANES) panels, and British Election Study (BES)-style panels.</p>
+      <p>It is for answers on Likert scales (strongly agree to strongly disagree, liberal–conservative, party identification). It is aimed at studies that measure several related attitudes together. Waves can be unevenly spaced. People can miss a wave, or skip an item, and stay in the analysis. Covariates such as age or education can be included.</p>
+      <h3>Questions it answers</h3>
+      <ol class="questions">
+        <li><strong>Stability.</strong> How stable are people’s attitudes over time?</li>
+        <li><strong>Constraint.</strong> How much does one attitude move with, or constrain, another?</li>
+        <li><strong>Where the variation comes from.</strong> How much of the variation in answers comes from lasting individual differences, how much from short-run change, and how much from measurement noise?</li>
+        <li><strong>A shock.</strong> If one attitude is pushed, how does that push show up in the other attitudes over later waves?</li>
+        <li><strong>Covariates.</strong> How do age, education, and similar characteristics relate to the attitudes?</li>
+      </ol>
+      <p>The software estimates these quantities together, for the whole panel. An attitude in one wave is allowed to depend on the attitudes that came before it, including when a wave was missed or an item was left blank.</p>
+      <p>Two packages are ready, both named <code>attitudedyn</code>. One is for R and one is for Python. They run the same calculations. A Stata interface to the same core is planned.</p>
+      <p class="cite">The model, and the General Social Survey estimates, are reported in Nepaul and Stern (2026). Cite that paper, and read it for what the estimates mean.</p>
+      <p class="cite">Nepaul, Alecia, and Steven Stern. 2026. “A Dynamic Discrete Choice Approach to Attitude Stability and Constraint.” <em>Political Analysis</em> 34: 490–509. <a href="https://doi.org/10.1017/pan.2026.10034">https://doi.org/10.1017/pan.2026.10034</a>.</p>
+    </section>
+    <nav class="choices" aria-label="Install">
+      <a class="choice" href="r.html">
+        <span class="label">R</span>
+        <span class="hint">From CRAN<br><code>install.packages("attitudedyn")</code></span>
+      </a>
+      <a class="choice" href="python.html">
+        <span class="label">Python</span>
+        <span class="hint">From PyPI<br><code>pip install attitudedyn</code></span>
+      </a>
+      <a class="choice" href="stata.html">
+        <span class="label">Stata</span>
+        <span class="hint">Coming soon<br>A Stata interface to the same core is planned.</span>
+      </a>
+    </nav>
+    <figure class="figure-card">
+      <img src="figures/gss_impulse_response.png" alt="Six-by-six grid of impulse responses for ideology, military spending, welfare, immigrants, party identification, and the environment. Each row is the attitude that responds and each column is the attitude that is shocked. Horizon 0 is the impact.">
+      <figcaption>Impulse responses from the General Social Survey application. The row is the attitude that responds. The column is the attitude that is shocked. Horizon 0 is the impact. Nepaul and Stern (2026) discuss the paths.</figcaption>
+    </figure>
+
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <p>Nepaul, Alecia, and Steven Stern. 2026. “A Dynamic Discrete Choice Approach to Attitude Stability and Constraint.” <em>Political Analysis</em> 34: 490–509. <a href="https://doi.org/10.1017/pan.2026.10034">https://doi.org/10.1017/pan.2026.10034</a>.</p>
+      <p>Replication data: Nepaul, Alecia, and Steven Stern. 2026. “Replication Data for: A Dynamic Discrete Choice Approach to Attitude Stability and Constraint.” Harvard Dataverse. <a href="https://doi.org/10.7910/DVN/DUCHYS">https://doi.org/10.7910/DVN/DUCHYS</a>.</p>
+      <p>The software <code>attitudedyn</code> is released under the <a href="LICENSE">MIT License</a>. Copyright © 2026 Gabriel Mihalache.</p>
+    </div>
+  </footer>
+</body>
+</html>
