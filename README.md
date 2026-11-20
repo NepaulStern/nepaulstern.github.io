@@ -4,12 +4,12 @@ Software for estimating The Nepaul-Stern Model of Attitude Stability and Constra
 
 This repository is a static website. GitHub Pages serves it from the `main` branch, at the repository root. There is no build step and no GitHub Actions workflow.
 
-The public address is <https://gmihalache.com/NepaulSternAttitudes/> (`gabrielgggg.github.io` redirects there).
+The public address is <https://nepaulstern.github.io/>.
 
-- Home: <https://gmihalache.com/NepaulSternAttitudes/>
-- R: <https://gmihalache.com/NepaulSternAttitudes/r.html>
-- Python: <https://gmihalache.com/NepaulSternAttitudes/python.html>
-- Stata: <https://gmihalache.com/NepaulSternAttitudes/stata.html>
+- Home: <https://nepaulstern.github.io/>
+- R: <https://nepaulstern.github.io/r.html>
+- Python: <https://nepaulstern.github.io/python.html>
+- Stata: <https://nepaulstern.github.io/stata.html>
 
 Install the R package from CRAN:
 
