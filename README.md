@@ -32,3 +32,5 @@ Replication data: Nepaul, Alecia, and Steven Stern. 2026. "Replication Data for:
 ## License
 
 The software is released under the MIT License. Copyright (c) 2026 Gabriel Mihalache.
+
+The C++/R/Python port, the documentation, and the deployment infrastructure were developed with Grok Bot and Cursor Cloud Agent.

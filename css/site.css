@@ -272,6 +272,18 @@ code {
   white-space: pre;
 }
 
+/* highlight.js colours tokens only. Block chrome, type, and size stay with the site. */
+.block pre code.hljs {
+  background: transparent;
+  padding: 0;
+  overflow: visible;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  white-space: pre;
+  color: var(--ink);
+}
+
 details.aside {
   margin: 1rem 0 1.4rem;
   max-width: var(--wide);
